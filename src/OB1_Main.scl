@@ -1,0 +1,35 @@
+// ==============================================================================
+// ORGANIZATION BLOCK: OB1 (Main)
+// ==============================================================================
+ORGANIZATION_BLOCK "Main"
+TITLE = 'Ciclo Principal de Varredura S7-1200'
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+   VAR_TEMP 
+      info : Date_And_Time;
+   END_VAR
+
+BEGIN
+   // Chamada ciclica da instancia DB_Caldeira conectada as I/Os fisicas
+   "DB_Caldeira"(
+      Botao_Liga        := "Botao_liga",        // %I0.0
+      Botao_Desliga     := "Botao_desliga",     // %I0.1
+      Botao_Reset       := "Botao_reset",       // %I0.2
+      Botao_Emergencia  := "Botao_emergencia",  // %I0.3
+      AI_Nivel_Raw      := "AI_Nivel",          // %IW64
+      AI_Pressao_Raw    := "AI_Pressao",        // %IW66
+      AI_Temp_Raw       := "AI_Temperatura",    // %IW68
+      Valvula_Agua      => "Valvula_Agua",      // %Q0.0
+      Valvula_Vapor     => "Valvula_Vapor",     // %Q0.1
+      Valvula_Alivio    => "Valvula_Alivio",    // %Q0.2
+      Queimador_1       => "Queimador_1",       // %Q0.3
+      Queimador_2       => "Queimador_2",       // %Q0.4
+      Queimador_3       => "Queimador_3",       // %Q0.5
+      Queimador_4       => "Queimador_4",       // %Q0.6
+      Queimador_5       => "Queimador_5",       // %Q0.7
+      Queimador_6       => "Queimador_6",       // %Q1.0
+      Lamp_Em_Operacao  => "Lamp_Sistema_Lig",  // %Q1.1
+      Lamp_Emergencia   => "Lamp_Alarme_Emerg"  // %Q1.2
+   );
+
+END_ORGANIZATION_BLOCK

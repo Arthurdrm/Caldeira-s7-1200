@@ -1,0 +1,13 @@
+# Arquivos de backup e logs do TIA Portal
+*.bak
+*.tmp
+*.log
+~*
+
+# Arquivos de sistema
+.DS_Store
+Thumbs.db
+
+# Compilados locais e caches
+__pycache__/
+*.pyc

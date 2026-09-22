@@ -1,0 +1,14 @@
+// ==============================================================================
+// DATA BLOCK DE INSTANCIA: DB_Caldeira
+// ==============================================================================
+DATA_BLOCK "DB_Caldeira"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+"FB_Controle_Caldeira"
+BEGIN
+   Nivel_Liga_Agua := 50.0;
+   Nivel_Desliga_Agua := 75.0;
+   Temp_Min_Vapor := 80.0;
+   Pressao_Min_Vapor := 70.0;
+   Pressao_Max_Seguranca := 95.0;
+END_DATA_BLOCK

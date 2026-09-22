@@ -1,0 +1,380 @@
+// ==============================================================================
+// SISTEMA DE CONTROLE E INTERTRAVAMENTO DE CALDEIRA INDUSTRIAL
+// Plataforma: Siemens SIMATIC S7-1200 (TIA Portal V13 / V14 / V15 / V16 / V17 / V18 / V19)
+// Padrão: IEC 61131-3 (Structured Control Language - SCL)
+// ==============================================================================
+
+TYPE "type_Parametros_Caldeira"
+TITLE = 'Parametros de Configuracao da Caldeira'
+VERSION : 0.1
+   STRUCT
+      Nivel_Liga_Agua : Real := 50.0;       // % Nivel minimo para ligar valvula de abastecimento (Etapa 1)
+      Nivel_Desliga_Agua : Real := 75.0;    // % Nivel superior para fechar valvula de agua (Histerese)
+      Temp_Min_Vapor : Real := 80.0;        // % Temperatura minima para liberar valvula principal de vapor (Etapa 3)
+      Pressao_Min_Vapor : Real := 70.0;     // % Pressao interna minima para liberar valvula de vapor (Etapa 3)
+      Pressao_Max_Seguranca : Real := 95.0; // % Pressao de sobrepressao critica para alivio automatico
+   END_STRUCT;
+END_TYPE
+
+TYPE "type_Status_Caldeira"
+TITLE = 'Status e Medicoes do Sistema'
+VERSION : 0.1
+   STRUCT
+      Sistema_Ligado : Bool;             // Sistema em operacao
+      Emergencia_Ativa : Bool;           // Trava de emergencia engatada/retida
+      Alarme_Nivel_Critico : Bool;       // Nivel < 50%
+      Alarme_Sobrepressao : Bool;        // Pressao > Pressao_Max_Seguranca
+      
+      // Engenharia de Variaveis Analogicas Escalonadas (0.0 a 100.0%)
+      Nivel_Perc : Real;                 // Leitura percentual de Nivel
+      Pressao_Perc : Real;               // Leitura percentual de Pressao
+      Temp_Perc : Real;                  // Leitura percentual de Temperatura
+      
+      // Quantidade de Queimadores Ativos (0 a 6)
+      Qtd_Queimadores_Ativos : Int;
+   END_STRUCT;
+END_TYPE
+
+// ==============================================================================
+// FUNCTION BLOCK: FB_Controle_Caldeira
+// Logica das Etapas 1, 2, 3, 4 e 5
+// ==============================================================================
+FUNCTION_BLOCK "FB_Controle_Caldeira"
+TITLE = 'Bloco de Controle e Seguranca da Caldeira'
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+   VAR_INPUT 
+      // Sinais Digitais de Campo (Slide 5)
+      Botao_Liga : Bool;        // I0.0 (NA) - Pulso de partida
+      Botao_Desliga : Bool;     // I0.1 (NF) - Botao parada natural (1=Repouso, 0=Pressionado)
+      Botao_Reset : Bool;       // I0.2 (NF) - Pulso de reconhecimento de falha (1=Repouso, 0=Pressionado)
+      Botao_Emergencia : Bool;  // I0.3 (NF Retencao) - Parada imediata (1=Seguro/Destravado, 0=Emergencia)
+      
+      // Sinais Analogicos Brutos (4-20mA / 0 a 27648)
+      AI_Nivel_Raw : Int;       // IW64 (AI0) - Nivel do reservatorio
+      AI_Pressao_Raw : Int;     // IW66 (AI1) - Pressao interna do cilindro
+      AI_Temp_Raw : Int;        // IW68 (AI2) - Temperatura do trocador
+      
+      // Parametros Ajustaveis de Processo
+      Parametros : "type_Parametros_Caldeira";
+   END_VAR
+
+   VAR_OUTPUT 
+      // Saidas Digitais para Atuadores e Valvulas
+      Valvula_Agua : Bool;      // Q0.0 - Valvula on/off abastecimento de agua
+      Valvula_Vapor : Bool;     // Q0.1 - Valvula principal da linha de vapor
+      Valvula_Alivio : Bool;    // Q0.2 - Valvula de alivio de emergencia
+      
+      // Saidas Digitais dos 6 Queimadores (Etapa 2)
+      Queimador_1 : Bool;       // Q0.3
+      Queimador_2 : Bool;       // Q0.4
+      Queimador_3 : Bool;       // Q0.5
+      Queimador_4 : Bool;       // Q0.6
+      Queimador_5 : Bool;       // Q0.7
+      Queimador_6 : Bool;       // Q1.0
+      
+      // Sinalizacao e Painel
+      Lamp_Em_Operacao : Bool;  // Q1.1 - Luz piloto sistema ligado
+      Lamp_Emergencia : Bool;   // Q1.2 - Luz piloto alarme de emergencia
+      
+      // Estrutura de Status Completa
+      Status : "type_Status_Caldeira";
+   END_VAR
+
+   VAR 
+      // Variaveis Internas e Flags de Borda
+      stat_Sistema_Ligado : Bool := FALSE;
+      stat_Emergencia_Latched : Bool := FALSE;
+      stat_Valvula_Agua : Bool := FALSE;
+      
+      // Memorias de borda para botoes
+      stat_Liga_Prev : Bool := FALSE;
+      stat_Reset_Prev : Bool := FALSE;
+      stat_Desliga_Prev : Bool := TRUE;
+   END_VAR
+
+   VAR_TEMP 
+      pulso_Liga : Bool;
+      pulso_Reset : Bool;
+      pulso_Desliga : Bool;
+      rNivel_Calc : Real;
+      rPressao_Calc : Real;
+      rTemp_Calc : Real;
+      condicao_Queimadores_OK : Bool;
+   END_VAR
+
+
+BEGIN
+   // --------------------------------------------------------------------------
+   // 1. ESCALONAMENTO DOS SINAIS ANALOGICOS (0 a 27648 -> 0.0 a 100.0%)
+   // Norma Siemens Standard para 4-20mA
+   // --------------------------------------------------------------------------
+   // Nivel (AI0)
+   rNivel_Calc := (INT_TO_REAL(#AI_Nivel_Raw) / 27648.0) * 100.0;
+   IF rNivel_Calc < 0.0 THEN
+      rNivel_Calc := 0.0;
+   ELSIF rNivel_Calc > 100.0 THEN
+      rNivel_Calc := 100.0;
+   END_IF;
+   #Status.Nivel_Perc := rNivel_Calc;
+
+   // Pressao (AI1)
+   rPressao_Calc := (INT_TO_REAL(#AI_Pressao_Raw) / 27648.0) * 100.0;
+   IF rPressao_Calc < 0.0 THEN
+      rPressao_Calc := 0.0;
+   ELSIF rPressao_Calc > 100.0 THEN
+      rPressao_Calc := 100.0;
+   END_IF;
+   #Status.Pressao_Perc := rPressao_Calc;
+
+   // Temperatura (AI2)
+   rTemp_Calc := (INT_TO_REAL(#AI_Temp_Raw) / 27648.0) * 100.0;
+   IF rTemp_Calc < 0.0 THEN
+      rTemp_Calc := 0.0;
+   ELSIF rTemp_Calc > 100.0 THEN
+      rTemp_Calc := 100.0;
+   END_IF;
+   #Status.Temp_Perc := rTemp_Calc;
+
+
+   // --------------------------------------------------------------------------
+   // 2. DETECCAO DE BORDAS DOS BOTOES DIGITAIS
+   // --------------------------------------------------------------------------
+   // Botao Liga (NA: borda de subida 0 -> 1)
+   pulso_Liga := #Botao_Liga AND NOT #stat_Liga_Prev;
+   #stat_Liga_Prev := #Botao_Liga;
+
+   // Botao Reset (NF fisico: borda ao ser pressionado, caindo 1 -> 0, ou subindo caso NA)
+   pulso_Reset := (NOT #Botao_Reset) AND #stat_Reset_Prev;
+   #stat_Reset_Prev := #Botao_Reset;
+
+   // Botao Desliga (NF fisico: pressionado = 0)
+   pulso_Desliga := (NOT #Botao_Desliga) AND #stat_Desliga_Prev;
+   #stat_Desliga_Prev := #Botao_Desliga;
+
+
+   // --------------------------------------------------------------------------
+   // 3. ETAPAS 4 E 5: CIRCUITO DE SEGURANCA E PARADA CRITICA (EMERGENCIA)
+   // Slide 4: Acionado pela trava de Emergencia (I0.3 NF).
+   // Corta todo o sistema, desliga queimadores, forca abertura da valvula de alivio.
+   // Normalizacao: destravar fisicamente o cogumelo (I0.3=TRUE) + pulso no botao Reset.
+   // --------------------------------------------------------------------------
+   IF NOT #Botao_Emergencia THEN
+      // Trava de Emergencia aberta / acionada
+      #stat_Emergencia_Latched := TRUE;
+      #stat_Sistema_Ligado := FALSE;
+   ELSIF #stat_Emergencia_Latched AND #Botao_Emergencia AND pulso_Reset THEN
+      // Destravado fisicamente E pulso no botao Reset aplicado
+      #stat_Emergencia_Latched := FALSE;
+   END_IF;
+
+
+   // --------------------------------------------------------------------------
+   // 4. CONTROLE DE PARTIDA E PARADA DO SISTEMA
+   // Slide 1 e 4: Partida por pulso no botao Liga (I0.0). Parada por botao Desliga (I0.1).
+   // --------------------------------------------------------------------------
+   IF #stat_Emergencia_Latched THEN
+      #stat_Sistema_Ligado := FALSE;
+   ELSIF pulso_Desliga OR (NOT #Botao_Desliga) THEN
+      // Procedimento de parada intencional
+      #stat_Sistema_Ligado := FALSE;
+   ELSIF pulso_Liga AND (NOT #stat_Emergencia_Latched) AND #Botao_Desliga THEN
+      #stat_Sistema_Ligado := TRUE;
+   END_IF;
+
+
+   // --------------------------------------------------------------------------
+   // 5. ETAPA 1: CONTROLE DE ABASTECIMENTO DE AGUA
+   // Slide 1: Monitoramento continuo do nivel. Se < 50%, valvula on/off abre.
+   // Slide 4: "E estritamente mandatorio manter o monitoramento da agua para
+   // impedir o choque termico na estrutura de aco da fornalha", mesmo ao desligar!
+   // --------------------------------------------------------------------------
+   IF rNivel_Calc < #Parametros.Nivel_Liga_Agua THEN
+      // Nivel abaixo de 50%: abre imediatamente a valvula
+      #stat_Valvula_Agua := TRUE;
+   ELSIF rNivel_Calc >= #Parametros.Nivel_Desliga_Agua THEN
+      // Nivel alcancou patamar seguro com histerese (75%): fecha valvula
+      #stat_Valvula_Agua := FALSE;
+   END_IF;
+
+   #Valvula_Agua := #stat_Valvula_Agua;
+   #Status.Alarme_Nivel_Critico := (rNivel_Calc < #Parametros.Nivel_Liga_Agua);
+
+
+   // --------------------------------------------------------------------------
+   // 6. ETAPA 2: CONTROLE E OTIMIZACAO TERMICA DOS QUEIMADORES
+   // Slide 2: Requisitos para ignicao:
+   //   - Sistema Ligado = TRUE
+   //   - Sem Emergencia
+   //   - Nivel de Agua >= 50% (Intertravamento contra queima a seco)
+   // Tabela de Otimizacao Termica:
+   //   >= 80% do Range  -> 2 Queimadores (Q1, Q2)
+   //   60% a <80% Range -> 3 Queimadores (Q1, Q2, Q3)
+   //   40% a <60% Range -> 4 Queimadores (Q1, Q2, Q3, Q4)
+   //   20% a <40% Range -> 5 Queimadores (Q1, Q2, Q3, Q4, Q5)
+   //   < 20% do Range   -> 6 Queimadores (Q1 a Q6)
+   // --------------------------------------------------------------------------
+   condicao_Queimadores_OK := #stat_Sistema_Ligado 
+                              AND (NOT #stat_Emergencia_Latched) 
+                              AND (rNivel_Calc >= #Parametros.Nivel_Liga_Agua);
+
+   IF NOT condicao_Queimadores_OK THEN
+      // Todos desligados por seguranca ou parada
+      #Queimador_1 := FALSE;
+      #Queimador_2 := FALSE;
+      #Queimador_3 := FALSE;
+      #Queimador_4 := FALSE;
+      #Queimador_5 := FALSE;
+      #Queimador_6 := FALSE;
+      #Status.Qtd_Queimadores_Ativos := 0;
+
+   ELSE
+      // Ajuste conforme rampa e tabela de otimizacao termica
+      IF rTemp_Calc >= 80.0 THEN
+         #Queimador_1 := TRUE;
+         #Queimador_2 := TRUE;
+         #Queimador_3 := FALSE;
+         #Queimador_4 := FALSE;
+         #Queimador_5 := FALSE;
+         #Queimador_6 := FALSE;
+         #Status.Qtd_Queimadores_Ativos := 2;
+
+      ELSIF rTemp_Calc >= 60.0 THEN
+         #Queimador_1 := TRUE;
+         #Queimador_2 := TRUE;
+         #Queimador_3 := TRUE;
+         #Queimador_4 := FALSE;
+         #Queimador_5 := FALSE;
+         #Queimador_6 := FALSE;
+         #Status.Qtd_Queimadores_Ativos := 3;
+
+      ELSIF rTemp_Calc >= 40.0 THEN
+         #Queimador_1 := TRUE;
+         #Queimador_2 := TRUE;
+         #Queimador_3 := TRUE;
+         #Queimador_4 := TRUE;
+         #Queimador_5 := FALSE;
+         #Queimador_6 := FALSE;
+         #Status.Qtd_Queimadores_Ativos := 4;
+
+      ELSIF rTemp_Calc >= 20.0 THEN
+         #Queimador_1 := TRUE;
+         #Queimador_2 := TRUE;
+         #Queimador_3 := TRUE;
+         #Queimador_4 := TRUE;
+         #Queimador_5 := TRUE;
+         #Queimador_6 := FALSE;
+         #Status.Qtd_Queimadores_Ativos := 5;
+
+      ELSE
+         // Temperatura < 20% (Partida a frio)
+         #Queimador_1 := TRUE;
+         #Queimador_2 := TRUE;
+         #Queimador_3 := TRUE;
+         #Queimador_4 := TRUE;
+         #Queimador_5 := TRUE;
+         #Queimador_6 := TRUE;
+         #Status.Qtd_Queimadores_Ativos := 6;
+      END_IF;
+   END_IF;
+
+
+   // --------------------------------------------------------------------------
+   // 7. ETAPA 3: LINHA DE VAPOR (LIBERACAO E INTERTRAVAMENTO)
+   // Slide 3:
+   // Logica de Abertura: Temperatura > 80% E Pressao interna > 70%.
+   // Intertravamento: Se decaírem para limites inferiores, fecha imediatamente.
+   // Slide 4: Acompanha rampa de resfriamento.
+   // --------------------------------------------------------------------------
+   IF #stat_Sistema_Ligado 
+      AND (NOT #stat_Emergencia_Latched) 
+      AND (rTemp_Calc > #Parametros.Temp_Min_Vapor) 
+      AND (rPressao_Calc > #Parametros.Pressao_Min_Vapor) THEN
+      #Valvula_Vapor := TRUE;
+   ELSE
+      // Intertravamento por decaimento de P/T ou desligamento/emergencia
+      #Valvula_Vapor := FALSE;
+   END_IF;
+
+
+   // --------------------------------------------------------------------------
+   // 8. VALVULA DE ALIVIO DE EMERGENCIA
+   // Slide 4: "forcando a abertura da valvula de alivio instantaneamente"
+   // Protecao adicional: se sobrepressao > 95%
+   // --------------------------------------------------------------------------
+   IF #stat_Emergencia_Latched OR (rPressao_Calc >= #Parametros.Pressao_Max_Seguranca) THEN
+      #Valvula_Alivio := TRUE;
+   ELSE
+      #Valvula_Alivio := FALSE;
+   END_IF;
+   #Status.Alarme_Sobrepressao := (rPressao_Calc >= #Parametros.Pressao_Max_Seguranca);
+
+
+   // --------------------------------------------------------------------------
+   // 9. ATUALIZACAO DE SINALIZACOES E STATUS GERAL
+   // --------------------------------------------------------------------------
+   #Status.Sistema_Ligado := #stat_Sistema_Ligado;
+   #Status.Emergencia_Ativa := #stat_Emergencia_Latched;
+   
+   #Lamp_Em_Operacao := #stat_Sistema_Ligado AND (NOT #stat_Emergencia_Latched);
+   #Lamp_Emergencia := #stat_Emergencia_Latched;
+
+END_FUNCTION_BLOCK
+
+// ==============================================================================
+// DATA BLOCK GLOBAL INSTANCIA: DB_Caldeira
+// ==============================================================================
+DATA_BLOCK "DB_Caldeira"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+"FB_Controle_Caldeira"
+BEGIN
+   // Inicializacao dos parametros padroes da especificacao
+   Parametros.Nivel_Liga_Agua := 50.0;
+   Parametros.Nivel_Desliga_Agua := 75.0;
+   Parametros.Temp_Min_Vapor := 80.0;
+   Parametros.Pressao_Min_Vapor := 70.0;
+   Parametros.Pressao_Max_Seguranca := 95.0;
+END_DATA_BLOCK
+
+// ==============================================================================
+// ORGANIZATION BLOCK: OB1 (Main)
+// Mapeamento direto de Hardware S7-1200
+// ==============================================================================
+ORGANIZATION_BLOCK "Main"
+TITLE = 'Ciclo Principal do CLP S7-1200'
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+   VAR_TEMP 
+      info : Date_And_Time;
+   END_VAR
+
+BEGIN
+   // Chamada do Bloco de Controle da Caldeira associado aos I/Os fisicos
+   "DB_Caldeira"(
+      // Entradas Digitais Fisicas (Slide 5)
+      Botao_Liga        := "Botao_liga",        // %I0.0 (NA)
+      Botao_Desliga     := "Botao_desliga",     // %I0.1 (NF)
+      Botao_Reset       := "Botao_reset",       // %I0.2 (NF)
+      Botao_Emergencia  := "Botao_emergencia",  // %I0.3 (NF Retencao)
+      
+      // Entradas Analogicas Fisicas (4-20mA)
+      AI_Nivel_Raw      := "AI_Nivel",          // %IW64 (AI0)
+      AI_Pressao_Raw    := "AI_Pressao",        // %IW66 (AI1)
+      AI_Temp_Raw       := "AI_Temperatura",    // %IW68 (AI2)
+
+      // Saidas Digitais Fisicas
+      Valvula_Agua      => "Valvula_Agua",      // %Q0.0
+      Valvula_Vapor     => "Valvula_Vapor",     // %Q0.1
+      Valvula_Alivio    => "Valvula_Alivio",    // %Q0.2
+      Queimador_1       => "Queimador_1",       // %Q0.3
+      Queimador_2       => "Queimador_2",       // %Q0.4
+      Queimador_3       => "Queimador_3",       // %Q0.5
+      Queimador_4       => "Queimador_4",       // %Q0.6
+      Queimador_5       => "Queimador_5",       // %Q0.7
+      Queimador_6       => "Queimador_6",       // %Q1.0
+      Lamp_Em_Operacao  => "Lamp_Sistema_Lig",  // %Q1.1
+      Lamp_Emergencia   => "Lamp_Alarme_Emerg"  // %Q1.2
+   );
+
+END_ORGANIZATION_BLOCK

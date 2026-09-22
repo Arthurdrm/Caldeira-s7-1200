@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Document>
+  <Engineering version="V17" />
+  <SW.Tags.PlcTagTable ID="0">
+    <AttributeList>
+      <Name>Tags_Caldeira</Name>
+    </AttributeList>
+    <ObjectList>
+      <SW.Tags.PlcTag ID="1" CompositionName="Tags">
+        <AttributeList>
+          <DataTypeName>Bool</DataTypeName>
+          <LogicalAddress>%I0.0</LogicalAddress>
+          <Name>Botao_liga</Name>
+          <Comment><MultiLanguageText Lang="pt-BR">Botao de impulso para partida do sistema (NA)</MultiLanguageText></Comment>
+        </AttributeList>
+      </SW.Tags.PlcTag>
+      <SW.Tags.PlcTag ID="2" CompositionName="Tags">
+        <AttributeList>
+          <DataTypeName>Bool</DataTypeName>
+          <LogicalAddress>%I0.1</LogicalAddress>
+          <Name>Botao_desliga</Name>
+          <Comment><MultiLanguageText Lang="pt-BR">Botao de impulso para parada natural (NF)</MultiLanguageText></Comment>
+        </AttributeList>
+      </SW.Tags.PlcTag>
+      <SW.Tags.PlcTag ID="3" CompositionName="Tags">
+        <AttributeList>
+          <DataTypeName>Bool</DataTypeName>
+          <LogicalAddress>%I0.2</LogicalAddress>
+          <Name>Botao_reset</Name>
+          <Comment><MultiLanguageText Lang="pt-BR">Botao de impulso para reconhecimento de falha (NF)</MultiLanguageText></Comment>
+        </AttributeList>
+      </SW.Tags.PlcTag>
+      <SW.Tags.PlcTag ID="4" CompositionName="Tags">
+        <AttributeList>
+          <DataTypeName>Bool</DataTypeName>
+          <LogicalAddress>%I0.3</LogicalAddress>
+          <Name>Botao_emergencia</Name>
+          <Comment><MultiLanguageText Lang="pt-BR">Botao cogumelo de parada imediata (NF com retencao)</MultiLanguageText></Comment>
+        </AttributeList>
+      </SW.Tags.PlcTag>
+      <SW.Tags.PlcTag ID="5" CompositionName="Tags">
+        <AttributeList>
+          <DataTypeName>Int</DataTypeName>
+          <LogicalAddress>%IW64</LogicalAddress>
+          <Name>AI_Nivel</Name>
+          <Comment><MultiLanguageText Lang="pt-BR">Leitura analogica de nivel do reservatorio (4-20mA)</MultiLanguageText></Comment>
+        </AttributeList>
+      </SW.Tags.PlcTag>
+      <SW.Tags.PlcTag ID="6" CompositionName="Tags">
+        <AttributeList>
+          <DataTypeName>Int</DataTypeName>
+          <LogicalAddress>%IW66</LogicalAddress>
+          <Name>AI_Pressao</Name>
+          <Comment><MultiLanguageText Lang="pt-BR">Leitura analogica de pressao interna do cilindro (4-20mA)</MultiLanguageText></Comment>
+        </AttributeList>
+      </SW.Tags.PlcTag>
+      <SW.Tags.PlcTag ID="7" CompositionName="Tags">
+        <AttributeList>
+          <DataTypeName>Int</DataTypeName>
+          <LogicalAddress>%IW68</LogicalAddress>
+          <Name>AI_Temperatura</Name>
+          <Comment><MultiLanguageText Lang="pt-BR">Leitura analogica de temperatura interna do trocador (4-20mA)</MultiLanguageText></Comment>
+        </AttributeList>
+      </SW.Tags.PlcTag>
+      <SW.Tags.PlcTag ID="8" CompositionName="Tags">
+        <AttributeList>
+          <DataTypeName>Bool</DataTypeName>
+          <LogicalAddress>%Q0.0</LogicalAddress>
+          <Name>Valvula_Agua</Name>
+          <Comment><MultiLanguageText Lang="pt-BR">Valvula ON/OFF de abastecimento continuo de agua</MultiLanguageText></Comment>
+        </AttributeList>
+      </SW.Tags.PlcTag>
+      <SW.Tags.PlcTag ID="9" CompositionName="Tags">
+        <AttributeList>
+          <DataTypeName>Bool</DataTypeName>
+          <LogicalAddress>%Q0.1</LogicalAddress>
+          <Name>Valvula_Vapor</Name>
+          <Comment><MultiLanguageText Lang="pt-BR">Valvula principal de vapor para linha de producao</MultiLanguageText></Comment>
+        </AttributeList>
+      </SW.Tags.PlcTag>
+      <SW.Tags.PlcTag ID="10" CompositionName="Tags">
+        <AttributeList>
+          <DataTypeName>Bool</DataTypeName>
+          <LogicalAddress>%Q0.2</LogicalAddress>
+          <Name>Valvula_Alivio</Name>
+          <Comment><MultiLanguageText Lang="pt-BR">Valvula de alivio rapido de sobrepressao e emergencia</MultiLanguageText></Comment>
+        </AttributeList>
+      </SW.Tags.PlcTag>
+      <SW.Tags.PlcTag ID="11" CompositionName="Tags">
+        <AttributeList>
+          <DataTypeName>Bool</DataTypeName>
+          <LogicalAddress>%Q0.3</LogicalAddress>
+          <Name>Queimador_1</Name>
+          <Comment><MultiLanguageText Lang="pt-BR">Acionamento do Queimador 1</MultiLanguageText></Comment>
+        </AttributeList>
+      </SW.Tags.PlcTag>
+      <SW.Tags.PlcTag ID="12" CompositionName="Tags">
+        <AttributeList>
+          <DataTypeName>Bool</DataTypeName>
+          <LogicalAddress>%Q0.4</LogicalAddress>
+          <Name>Queimador_2</Name>
+          <Comment><MultiLanguageText Lang="pt-BR">Acionamento do Queimador 2</MultiLanguageText></Comment>
+        </AttributeList>
+      </SW.Tags.PlcTag>
+      <SW.Tags.PlcTag ID="13" CompositionName="Tags">
+        <AttributeList>
+          <DataTypeName>Bool</DataTypeName>
+          <LogicalAddress>%Q0.5</LogicalAddress>
+          <Name>Queimador_3</Name>
+          <Comment><MultiLanguageText Lang="pt-BR">Acionamento do Queimador 3</MultiLanguageText></Comment>
+        </AttributeList>
+      </SW.Tags.PlcTag>
+      <SW.Tags.PlcTag ID="14" CompositionName="Tags">
+        <AttributeList>
+          <DataTypeName>Bool</DataTypeName>
+          <LogicalAddress>%Q0.6</LogicalAddress>
+          <Name>Queimador_4</Name>
+          <Comment><MultiLanguageText Lang="pt-BR">Acionamento do Queimador 4</MultiLanguageText></Comment>
+        </AttributeList>
+      </SW.Tags.PlcTag>
+      <SW.Tags.PlcTag ID="15" CompositionName="Tags">
+        <AttributeList>
+          <DataTypeName>Bool</DataTypeName>
+          <LogicalAddress>%Q0.7</LogicalAddress>
+          <Name>Queimador_5</Name>
+          <Comment><MultiLanguageText Lang="pt-BR">Acionamento do Queimador 5</MultiLanguageText></Comment>
+        </AttributeList>
+      </SW.Tags.PlcTag>
+      <SW.Tags.PlcTag ID="16" CompositionName="Tags">
+        <AttributeList>
+          <DataTypeName>Bool</DataTypeName>
+          <LogicalAddress>%Q1.0</LogicalAddress>
+          <Name>Queimador_6</Name>
+          <Comment><MultiLanguageText Lang="pt-BR">Acionamento do Queimador 6</MultiLanguageText></Comment>
+        </AttributeList>
+      </SW.Tags.PlcTag>
+      <SW.Tags.PlcTag ID="17" CompositionName="Tags">
+        <AttributeList>
+          <DataTypeName>Bool</DataTypeName>
+          <LogicalAddress>%Q1.1</LogicalAddress>
+          <Name>Lamp_Sistema_Lig</Name>
+          <Comment><MultiLanguageText Lang="pt-BR">Sinalizacao luminosa: Sistema em operacao</MultiLanguageText></Comment>
+        </AttributeList>
+      </SW.Tags.PlcTag>
+      <SW.Tags.PlcTag ID="18" CompositionName="Tags">
+        <AttributeList>
+          <DataTypeName>Bool</DataTypeName>
+          <LogicalAddress>%Q1.2</LogicalAddress>
+          <Name>Lamp_Alarme_Emerg</Name>
+          <Comment><MultiLanguageText Lang="pt-BR">Sinalizacao luminosa: Alarme de Emergencia ativado</MultiLanguageText></Comment>
+        </AttributeList>
+      </SW.Tags.PlcTag>
+    </ObjectList>
+  </SW.Tags.PlcTagTable>
+</Document>
