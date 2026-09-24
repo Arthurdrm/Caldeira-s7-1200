@@ -1,4 +1,4 @@
-"""Ponto de Entrada do Simulador de Caldeira Industrial Siemens S7-1200.
+"""Ponto de Entrada do Projeto_Caldeira_s7-1200 — Simulador de Caldeira Industrial Siemens S7-1200.
 
 Execução:
     ./run_simulador.sh

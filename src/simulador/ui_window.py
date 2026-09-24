@@ -186,7 +186,7 @@ class MainWindowSimulador(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Siemens SIMATIC S7-1200 — Simulador de Caldeira Industrial")
+        self.setWindowTitle("Projeto_Caldeira_s7-1200 — Simulador de Caldeira Industrial")
         self.resize(1180, 780)
 
         self.plc = PLCS71200Caldeira()
@@ -212,7 +212,7 @@ class MainWindowSimulador(QMainWindow):
         header.setStyleSheet("background-color: #1e2229; border-radius: 8px; padding: 10px;")
         h_layout = QHBoxLayout(header)
 
-        title = QLabel("SIEMENS S7-1200  |  SISTEMA DE CONTROLE DE CALDEIRA")
+        title = QLabel("PROJETO_CALDEIRA_S7-1200  |  SISTEMA DE CONTROLE DE CALDEIRA")
         title.setFont(QFont("Arial", 13, QFont.Bold))
         title.setStyleSheet("color: #00d2ff;")
         h_layout.addWidget(title)
