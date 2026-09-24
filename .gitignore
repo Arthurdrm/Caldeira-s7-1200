@@ -12,6 +12,7 @@ Thumbs.db
 __pycache__/
 *.pyc
 build/
-dist/
+dist/*
+!dist/*.exe
 .venv/
 .pytest_cache/
