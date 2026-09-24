@@ -1,4 +1,4 @@
-# Sistema de Controle e Intertravamento de Caldeira Industrial (Siemens S7-1200)
+# Projeto_Caldeira_s7-1200 — Sistema de Controle e Intertravamento de Caldeira Industrial (Siemens S7-1200)
 
 [![PLC](https://img.shields.io/badge/PLC-Siemens%20SIMATIC%20S7--1200-00646E.svg)](https://www.siemens.com)
 [![TIA Portal](https://img.shields.io/badge/TIA%20Portal-V13%20a%20V19-EB780A.svg)](https://support.industry.siemens.com)
@@ -21,7 +21,7 @@ Projeto completo de automação, modulação térmica e segurança crítica para
 ## 📂 Estrutura do Repositório
 
 ```text
-caldeira-s7-1200/
+Projeto_Caldeira_s7-1200/
 ├── src/
 │   ├── Caldeira_Controle_S7_1200.scl   # Arquivo SCL unificado (Pronto para importar no TIA Portal)
 │   ├── FB_Controle_Caldeira.scl         # Bloco de Função (Lógica principal modular)

@@ -23,7 +23,7 @@ RESET = "\033[0m"
 
 def print_header():
     print(f"\n{CYAN}{BOLD}{'=' * 74}")
-    print("  SIEMENS SIMATIC S7-1200 — RELATÓRIO DE TESTES & VALIDAÇÃO TÉCNICA")
+    print("  PROJETO_CALDEIRA_S7-1200 — RELATÓRIO DE TESTES & VALIDAÇÃO TÉCNICA")
     print("  Sistema de Controle de Caldeira Industrial com Física Termodinâmica")
     print(f"{'=' * 74}{RESET}\n")
 
