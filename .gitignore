@@ -11,3 +11,7 @@ Thumbs.db
 # Compilados locais e caches
 __pycache__/
 *.pyc
+build/
+dist/
+.venv/
+.pytest_cache/

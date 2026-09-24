@@ -1,0 +1,111 @@
+name: Build Windows Executable (.exe)
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build Windows Executable (.exe)
+    runs-on: windows-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run automated unit tests
+        run: pytest tests/
+
+      - name: Build standalone executable with PyInstaller
+        run: python -m PyInstaller simulador_caldeira.spec --noconfirm --clean
+
+      - name: Verify executable and generate SHA256 checksum
+        shell: pwsh
+        run: |
+          $exePath = "dist\Simulador_Caldeira_S7_1200.exe"
+          if (-not (Test-Path -Path $exePath)) {
+            Write-Error "dist\Simulador_Caldeira_S7_1200.exe does not exist"
+            exit 1
+          }
+          $fileItem = Get-Item -Path $exePath
+          if ($fileItem.Length -le 0) {
+            Write-Error "dist\Simulador_Caldeira_S7_1200.exe is empty (0 bytes)"
+            exit 1
+          }
+          $hash = (Get-FileHash -Path $exePath -Algorithm SHA256).Hash.ToLower()
+          $checksumLine = "$hash  Simulador_Caldeira_S7_1200.exe"
+          [System.IO.File]::WriteAllText("dist\Simulador_Caldeira_S7_1200.exe.sha256", "$checksumLine`n")
+          Write-Host "Verified dist\Simulador_Caldeira_S7_1200.exe ($($fileItem.Length) bytes)"
+          Write-Host "Generated SHA256: $checksumLine"
+
+      - name: Upload Windows executable artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: simulador-caldeira-s7-1200-windows
+          path: |
+            dist/Simulador_Caldeira_S7_1200.exe
+            dist/Simulador_Caldeira_S7_1200.exe.sha256
+          retention-days: 14
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download Windows executable artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: simulador-caldeira-s7-1200-windows
+          path: dist
+
+      - name: Verify checksum
+        run: |
+          cd dist
+          ls -lh
+          sha256sum --check Simulador_Caldeira_S7_1200.exe.sha256
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG_NAME="${GITHUB_REF#refs/tags/}"
+          echo "Publishing release for tag: ${TAG_NAME}"
+          if gh release view "${TAG_NAME}" >/dev/null 2>&1; then
+            echo "Release ${TAG_NAME} already exists. Updating release assets..."
+            gh release upload "${TAG_NAME}" dist/Simulador_Caldeira_S7_1200.exe dist/Simulador_Caldeira_S7_1200.exe.sha256 --clobber
+          else
+            echo "Creating new release ${TAG_NAME}..."
+            gh release create "${TAG_NAME}" \
+              dist/Simulador_Caldeira_S7_1200.exe \
+              dist/Simulador_Caldeira_S7_1200.exe.sha256 \
+              --title "Simulador Caldeira S7-1200 (${TAG_NAME})" \
+              --notes "Executável standalone para Windows (64-bit) do Simulador de Caldeira Industrial Siemens S7-1200."
+          fi
