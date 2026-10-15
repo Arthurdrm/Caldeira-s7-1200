@@ -15,8 +15,7 @@ Projeto completo de automação, modulação térmica e segurança crítica para
 [![Release](https://img.shields.io/github/v/release/Arthurdrm/Caldeira-s7-1200?style=for-the-badge&color=green)](https://github.com/Arthurdrm/Caldeira-s7-1200/releases/latest)
 
 > 💡 **Pronto para rodar — Não precisa instalar Python nem configurar nada!**  
-> Clique no botão acima para baixar o `Simulador_Caldeira_S7_1200.exe` e execute diretamente em qualquer computador com Windows 10/11.
-> O executável também está disponível diretamente no repositório na pasta [`dist/Simulador_Caldeira_S7_1200.exe`](dist/Simulador_Caldeira_S7_1200.exe).
+> Para gerar o executável no seu computador com Windows, dê dois cliques em `build_exe.bat`.
 
 ## 📂 Estrutura do Repositório
 

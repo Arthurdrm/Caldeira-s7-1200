@@ -11,8 +11,12 @@ Thumbs.db
 # Compilados locais e caches
 __pycache__/
 *.pyc
-build/
-dist/*
-!dist/*.exe
 .venv/
 .pytest_cache/
+
+# Binários e builds locais (NUNCA versionar no Git)
+*.exe
+*.pkg
+*.zip
+build/
+dist/
