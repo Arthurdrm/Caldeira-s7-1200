@@ -1,0 +1,41 @@
+name: Compilar Simulador Caldeira (Manual)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build Windows Executable (.exe)
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout do repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Instalar dependencias e PyInstaller
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Executar testes unitarios automatizados
+        run: pytest tests/
+
+      - name: Compilar executavel com PyInstaller
+        run: python -m PyInstaller simulador_caldeira.spec --noconfirm --clean
+
+      - name: Disponibilizar Executavel (Auto-delete em 3 dias)
+        uses: actions/upload-artifact@v4
+        with:
+          name: Simulador-Caldeira-S7-1200-Windows
+          path: dist/Simulador_Caldeira_S7_1200.exe
+          retention-days: 3
