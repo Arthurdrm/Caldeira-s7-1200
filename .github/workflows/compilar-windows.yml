@@ -38,4 +38,4 @@ jobs:
         with:
           name: Simulador-Caldeira-S7-1200-Windows
           path: dist/Simulador_Caldeira_S7_1200.exe
-          retention-days: 3
+          retention-days: 7
